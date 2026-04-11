@@ -1,25 +1,25 @@
-# Built application files
+# Built files
 *.apk
 *.aar
-*.ap_
 *.aab
-
-# Local configuration file
-local.properties
-
-# Gradle files
 .gradle/
 build/
+app/build/
 
-# Android Studio
+# Local config — contains API keys — NEVER commit this
+local.properties
+
+# IDE files
 .idea/
 *.iml
-*.iws
 .DS_Store
 
-# Keystore files
+# Keystore
 *.jks
 *.keystore
 
-# Google Services
+# Google services
 google-services.json
+
+# Kotlin cache
+.kotlin/
