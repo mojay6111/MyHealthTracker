@@ -64,7 +64,8 @@ fun StatsScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // ── Summary Cards ──

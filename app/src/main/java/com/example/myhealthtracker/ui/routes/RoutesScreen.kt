@@ -155,7 +155,7 @@ fun RoutesScreen(
                     .fillMaxSize()
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
+                contentPadding = PaddingValues(top = 12.dp, bottom = 100.dp)
             ) {
                 items(uiState.filteredSessions) { session ->
                     RouteSessionCard(

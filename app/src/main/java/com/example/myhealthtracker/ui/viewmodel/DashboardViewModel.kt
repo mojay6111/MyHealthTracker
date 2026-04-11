@@ -30,7 +30,8 @@ data class DashboardUiState(
 class DashboardViewModel @Inject constructor(
     private val stepRepository: StepRepository,
     private val userProfileDataStore: UserProfileDataStore,
-    private val calorieCalculator: CalorieCalculator
+    private val calorieCalculator: CalorieCalculator,
+    private val waterDao: com.example.myhealthtracker.data.local.dao.WaterDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -40,6 +41,7 @@ class DashboardViewModel @Inject constructor(
         observeTodaySteps()
         observeUserProfile()
         observeWeeklySteps()
+        observeWater()
         updateGreeting()
     }
 
@@ -78,6 +80,21 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             stepRepository.getWeeklyRecords().collect { records ->
                 _uiState.update { it.copy(weeklyRecords = records) }
+            }
+        }
+    }
+
+
+    private fun observeWater() {
+        viewModelScope.launch {
+            val today = java.text.SimpleDateFormat(
+                "yyyy-MM-dd",
+                java.util.Locale.getDefault()
+            ).format(java.util.Date())
+            waterDao.getTotalWaterForDate(today).collect { total ->
+                _uiState.update { state ->
+                    state.copy(waterMl = total ?: 0)
+                }
             }
         }
     }

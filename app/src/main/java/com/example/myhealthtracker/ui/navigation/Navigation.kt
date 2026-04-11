@@ -23,6 +23,8 @@ import com.example.myhealthtracker.ui.weight.WeightScreen
 import com.example.myhealthtracker.ui.stats.StatsScreen
 import com.example.myhealthtracker.ui.routes.RoutesScreen
 import com.example.myhealthtracker.ui.routes.RouteDetailScreen
+import com.example.myhealthtracker.ui.share.ShareCardScreen
+import com.example.myhealthtracker.ui.sleep.SleepScreen
 
 sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
@@ -38,16 +40,21 @@ sealed class Screen(val route: String) {
     data object RouteDetail : Screen("route_detail/{sessionId}") {
         fun createRoute(sessionId: Long) = "route_detail/$sessionId"
     }
+    data object Share : Screen("share")
+
+    data object Sleep : Screen("sleep")
 }
 
 @Composable
 fun FitTrackNavHost(
     navController: NavHostController,
     startDestination: String,
+    modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination,
+        modifier = modifier,
         enterTransition = {
             fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 }
         },
@@ -73,11 +80,8 @@ fun FitTrackNavHost(
 
         composable(Screen.Dashboard.route) {
             DashboardScreen(
-                onNavigateToRoutes = { navController.navigate(Screen.Routes.route) },
-                onNavigateToStats = { navController.navigate(Screen.Stats.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToWater = { navController.navigate(Screen.Water.route) },
-                onNavigateToWeight = { navController.navigate(Screen.Weight.route) },
                 onStartActivity = { type ->
                     navController.navigate(Screen.ActiveSession.createRoute(type))
                 }
@@ -130,6 +134,15 @@ fun FitTrackNavHost(
         composable(Screen.Weight.route) {
             WeightScreen(onBack = { navController.popBackStack() })
         }
+
+        composable(Screen.Share.route) {
+            ShareCardScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.Sleep.route) {
+            SleepScreen(onBack = { navController.popBackStack() })
+        }
+
     }
 }
 

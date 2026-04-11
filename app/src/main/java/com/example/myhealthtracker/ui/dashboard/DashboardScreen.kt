@@ -28,18 +28,19 @@ import com.example.myhealthtracker.ui.theme.FitTrackColors
 import com.example.myhealthtracker.ui.viewmodel.DashboardViewModel
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun DashboardScreen(
-    onNavigateToRoutes: () -> Unit,
-    onNavigateToStats: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToWater: () -> Unit,
-    onNavigateToWeight: () -> Unit,
     onStartActivity: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
-) {
+){
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -47,14 +48,15 @@ fun DashboardScreen(
             .background(FitTrackColors.Background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp)
-            .padding(top = 48.dp, bottom = 24.dp),
+            .padding(top = 48.dp, bottom = 200.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         // ── Header ──
         DashboardHeader(
             greeting = uiState.greeting,
             userName = uiState.userName,
-            onProfileClick = onNavigateToProfile
+            onProfileClick = onNavigateToProfile,
+            scrollOffset = scrollState.value
         )
 
         // ── Step Ring Card ──
@@ -91,13 +93,6 @@ fun DashboardScreen(
                 getDayLabel = viewModel::getDayLabel
             )
         }
-
-        // ── Bottom actions ──
-        BottomActionsRow(
-            onNavigateToRoutes = onNavigateToRoutes,
-            onNavigateToStats = onNavigateToStats,
-            onNavigateToWeight = onNavigateToWeight
-        )
     }
 }
 
@@ -105,22 +100,42 @@ fun DashboardScreen(
 fun DashboardHeader(
     greeting: String,
     userName: String,
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    scrollOffset: Int = 0
 ) {
+    // Collapse header as user scrolls — max collapse at 300px scroll
+    val collapseProgress = (scrollOffset / 300f).coerceIn(0f, 1f)
+
+    // Greeting fades out as we scroll
+    val greetingAlpha = (1f - collapseProgress * 2f).coerceIn(0f, 1f)
+
+    // Name font size shrinks from 24sp to 16sp
+    val nameFontSize = (24f - (collapseProgress * 8f)).coerceIn(16f, 24f)
+
+    // Header height shrinks
+    val topPadding = (48f - (collapseProgress * 24f)).coerceIn(24f, 48f)
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = topPadding.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(
-                text = greeting,
-                style = MaterialTheme.typography.bodyMedium,
-                color = FitTrackColors.TextSecondary
-            )
+            // Greeting fades out on scroll
+            if (greetingAlpha > 0f) {
+                Text(
+                    text = greeting,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = FitTrackColors.TextSecondary.copy(alpha = greetingAlpha),
+                    modifier = Modifier.graphicsLayer { alpha = greetingAlpha }
+                )
+            }
+            // Name shrinks but stays visible
             Text(
                 text = if (userName.isNotEmpty()) userName else "Athlete",
-                style = MaterialTheme.typography.headlineSmall,
+                fontSize = nameFontSize.sp,
                 fontWeight = FontWeight.Bold,
                 color = FitTrackColors.TextPrimary
             )
@@ -592,50 +607,3 @@ fun WeeklyBar(
     }
 }
 
-@Composable
-fun BottomActionsRow(
-    onNavigateToRoutes: () -> Unit,
-    onNavigateToStats: () -> Unit,
-    onNavigateToWeight: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        listOf(
-            Triple("Routes", Icons.Default.Map, onNavigateToRoutes),
-            Triple("Stats", Icons.Default.BarChart, onNavigateToStats),
-            Triple("Weight", Icons.Default.MonitorWeight, onNavigateToWeight)
-        ).forEach { (label, icon, onClick) ->
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onClick() },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = FitTrackColors.SurfaceElevated
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        tint = FitTrackColors.TealPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = FitTrackColors.TextSecondary
-                    )
-                }
-            }
-        }
-    }
-}

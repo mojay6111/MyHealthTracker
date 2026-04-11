@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.myhealthtracker.data.local.FitTrackDatabase
 import com.example.myhealthtracker.data.local.dao.*
+import com.example.myhealthtracker.util.NotificationHelper
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -37,14 +38,24 @@ object DatabaseModule {
     fun provideWeightDao(db: FitTrackDatabase): WeightDao = db.weightDao()
 
     @Provides
-    fun provideActivitySessionDao(db: FitTrackDatabase): ActivitySessionDao = db.activitySessionDao()
+    fun provideActivitySessionDao(db: FitTrackDatabase): ActivitySessionDao =
+        db.activitySessionDao()
 
     @Provides
-    fun providePersonalRecordDao(db: FitTrackDatabase): PersonalRecordDao = db.personalRecordDao()
+    fun providePersonalRecordDao(db: FitTrackDatabase): PersonalRecordDao =
+        db.personalRecordDao()
 
     @Provides
-    fun provideAchievementDao(db: FitTrackDatabase): AchievementDao = db.achievementDao()
+    fun provideAchievementDao(db: FitTrackDatabase): AchievementDao =
+        db.achievementDao()
 
     @Provides
     fun provideSleepDao(db: FitTrackDatabase): SleepDao = db.sleepDao()
+
+    @Provides
+    @Singleton
+    fun provideNotificationHelper(
+        @ApplicationContext context: Context
+    ): NotificationHelper = NotificationHelper(context)
+
 }
