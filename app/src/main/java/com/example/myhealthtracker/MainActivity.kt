@@ -34,13 +34,14 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.myhealthtracker.service.StepCounterService
 import com.example.myhealthtracker.ui.navigation.FitTrackNavHost
 import com.example.myhealthtracker.ui.navigation.Screen
 import com.example.myhealthtracker.ui.theme.FitTrackColors
 import com.example.myhealthtracker.ui.theme.FitTrackTheme
 import com.example.myhealthtracker.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import com.example.myhealthtracker.service.StepCounterService
+
 
 data class BottomNavItem(
     val screen: Screen,
@@ -186,7 +187,10 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToShare = {
                                 navController.navigate(Screen.Share.route)
-                            }
+                            },
+                            onNavigateToAchievements = {
+                                navController.navigate(Screen.Achievements.route)
+                            },
                         )
                     }
                 }
@@ -225,7 +229,8 @@ fun FitTrackBottomNav(
     onNavigateToWater: () -> Unit,
     onNavigateToWeight: () -> Unit,
     onNavigateToSleep: () -> Unit,
-    onNavigateToShare: () -> Unit
+    onNavigateToShare: () -> Unit,
+    onNavigateToAchievements: () -> Unit
 ) {
     var showMoreSheet by remember { mutableStateOf(false) }
 
@@ -235,7 +240,8 @@ fun FitTrackBottomNav(
             onWater = { showMoreSheet = false; onNavigateToWater() },
             onWeight = { showMoreSheet = false; onNavigateToWeight() },
             onSleep = { showMoreSheet = false; onNavigateToSleep() },
-            onShare = { showMoreSheet = false; onNavigateToShare() }
+            onShare = { showMoreSheet = false; onNavigateToShare() },
+            onAchievements = { showMoreSheet = false; onNavigateToAchievements() }
         )
     }
 
@@ -428,7 +434,8 @@ fun QuickActionsSheet(
     onWater: () -> Unit,
     onWeight: () -> Unit,
     onSleep: () -> Unit,
-    onShare: () -> Unit
+    onShare: () -> Unit,
+    onAchievements: () -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -496,11 +503,25 @@ fun QuickActionsSheet(
                 QuickActionItem(
                     modifier = Modifier.weight(1f),
                     emoji = "🏆",
+                    label = "Achievements",
+                    sublabel = "View badges",
+                    color = FitTrackColors.Amber,
+                    onClick = onAchievements
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                QuickActionItem(
+                    modifier = Modifier.weight(1f),
+                    emoji = "📤",
                     label = "Share",
                     sublabel = "Share progress",
                     color = FitTrackColors.Coral,
                     onClick = onShare
                 )
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }

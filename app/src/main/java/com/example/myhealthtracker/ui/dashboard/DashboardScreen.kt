@@ -30,11 +30,17 @@ import kotlin.math.cos
 import kotlin.math.sin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+
 
 @Composable
 fun DashboardScreen(
+    onNavigateToRoutes: () -> Unit,
+    onNavigateToStats: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToWater: () -> Unit,
+    onNavigateToWeight: () -> Unit,
     onStartActivity: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ){
@@ -56,7 +62,8 @@ fun DashboardScreen(
             greeting = uiState.greeting,
             userName = uiState.userName,
             onProfileClick = onNavigateToProfile,
-            scrollOffset = scrollState.value
+            scrollOffset = scrollState.value,
+            currentStreak = uiState.currentStreak
         )
 
         // ── Step Ring Card ──
@@ -101,7 +108,8 @@ fun DashboardHeader(
     greeting: String,
     userName: String,
     onProfileClick: () -> Unit,
-    scrollOffset: Int = 0
+    scrollOffset: Int = 0,
+    currentStreak: Int = 0
 ) {
     // Collapse header as user scrolls — max collapse at 300px scroll
     val collapseProgress = (scrollOffset / 300f).coerceIn(0f, 1f)
@@ -139,6 +147,20 @@ fun DashboardHeader(
                 fontWeight = FontWeight.Bold,
                 color = FitTrackColors.TextPrimary
             )
+            if (currentStreak > 0) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "🔥", fontSize = 12.sp)
+                    Text(
+                        text = "$currentStreak day streak",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = FitTrackColors.Coral,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
         IconButton(
             onClick = onProfileClick,

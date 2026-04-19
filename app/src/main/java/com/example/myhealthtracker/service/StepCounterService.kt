@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+import com.example.myhealthtracker.domain.usecase.AchievementEngine
 
 @AndroidEntryPoint
 class StepCounterService : Service(), SensorEventListener {
@@ -27,6 +28,7 @@ class StepCounterService : Service(), SensorEventListener {
     @Inject lateinit var stepDao: StepDao
     @Inject lateinit var userProfileDataStore: UserProfileDataStore
     @Inject lateinit var calorieCalculator: CalorieCalculator
+    @Inject lateinit var achievementEngine: AchievementEngine
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var sensorManager: SensorManager
@@ -119,6 +121,9 @@ class StepCounterService : Service(), SensorEventListener {
                     goalSteps = profile.dailyStepGoal
                 )
                 stepDao.upsertStepRecord(record)
+                if (steps % 500 == 0 || steps == 1) {
+                    achievementEngine.checkAndUnlock(profile.dailyStepGoal)
+                }
 
                 withContext(Dispatchers.Main) {
                     val notificationManager =

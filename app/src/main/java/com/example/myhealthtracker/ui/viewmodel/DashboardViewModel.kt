@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+import com.example.myhealthtracker.domain.usecase.AchievementEngine
 
 data class DashboardUiState(
     val steps: Int = 0,
@@ -23,7 +24,8 @@ data class DashboardUiState(
     val userName: String = "",
     val weeklyRecords: List<StepRecordEntity> = emptyList(),
     val progressFraction: Float = 0f,
-    val greeting: String = "Good Morning"
+    val greeting: String = "Good Morning",
+    val currentStreak: Int = 0
 )
 
 @HiltViewModel
@@ -31,7 +33,8 @@ class DashboardViewModel @Inject constructor(
     private val stepRepository: StepRepository,
     private val userProfileDataStore: UserProfileDataStore,
     private val calorieCalculator: CalorieCalculator,
-    private val waterDao: com.example.myhealthtracker.data.local.dao.WaterDao
+    private val waterDao: com.example.myhealthtracker.data.local.dao.WaterDao,
+    private val achievementEngine: AchievementEngine
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -42,15 +45,16 @@ class DashboardViewModel @Inject constructor(
         observeUserProfile()
         observeWeeklySteps()
         observeWater()
+        observeStreak()
         updateGreeting()
     }
 
     private fun observeTodaySteps() {
         viewModelScope.launch {
             stepRepository.getTodayStepRecord().collect { record ->
+                val steps = record?.steps ?: 0
+                val goal = record?.goalSteps ?: _uiState.value.stepGoal
                 _uiState.update { state ->
-                    val steps = record?.steps ?: 0
-                    val goal = record?.goalSteps ?: state.stepGoal
                     state.copy(
                         steps = steps,
                         calories = record?.caloriesBurned ?: 0.0,
@@ -58,6 +62,8 @@ class DashboardViewModel @Inject constructor(
                         progressFraction = (steps.toFloat() / goal.toFloat()).coerceIn(0f, 1f)
                     )
                 }
+                // Check achievements whenever steps update
+                achievementEngine.checkAndUnlock(goal)
             }
         }
     }
@@ -122,6 +128,21 @@ class DashboardViewModel @Inject constructor(
             SimpleDateFormat("EEE", Locale.getDefault()).format(date)
         } catch (e: Exception) {
             ""
+        }
+    }
+
+    private fun observeStreak() {
+        viewModelScope.launch {
+            stepRepository.getRecentRecords(30).collect { records ->
+                val goal = _uiState.value.stepGoal
+                var streak = 0
+                val sorted = records.sortedByDescending { it.date }
+                for (record in sorted) {
+                    if (record.steps >= goal) streak++
+                    else break
+                }
+                _uiState.update { it.copy(currentStreak = streak) }
+            }
         }
     }
 }

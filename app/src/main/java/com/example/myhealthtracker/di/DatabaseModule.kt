@@ -57,5 +57,4 @@ object DatabaseModule {
     fun provideNotificationHelper(
         @ApplicationContext context: Context
     ): NotificationHelper = NotificationHelper(context)
-
 }

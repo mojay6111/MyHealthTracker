@@ -2,29 +2,30 @@ package com.example.myhealthtracker.ui.navigation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
-import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import com.example.myhealthtracker.ui.dashboard.DashboardScreen
-import com.example.myhealthtracker.ui.onboarding.OnboardingScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.myhealthtracker.ui.theme.FitTrackColors
-import com.example.myhealthtracker.ui.session.ActiveSessionScreen
-import com.example.myhealthtracker.ui.profile.ProfileScreen
-import com.example.myhealthtracker.ui.water.WaterScreen
-import com.example.myhealthtracker.ui.weight.WeightScreen
-import com.example.myhealthtracker.ui.stats.StatsScreen
-import com.example.myhealthtracker.ui.routes.RoutesScreen
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.example.myhealthtracker.ui.achievements.AchievementsScreen
+import com.example.myhealthtracker.ui.dashboard.DashboardScreen
+import com.example.myhealthtracker.ui.onboarding.OnboardingScreen
 import com.example.myhealthtracker.ui.routes.RouteDetailScreen
+import com.example.myhealthtracker.ui.routes.RoutesScreen
+import com.example.myhealthtracker.ui.session.ActiveSessionScreen
 import com.example.myhealthtracker.ui.share.ShareCardScreen
 import com.example.myhealthtracker.ui.sleep.SleepScreen
+import com.example.myhealthtracker.ui.stats.StatsScreen
+import com.example.myhealthtracker.ui.theme.FitTrackColors
+import com.example.myhealthtracker.ui.water.WaterScreen
+import com.example.myhealthtracker.ui.weight.WeightScreen
+import com.example.myhealthtracker.ui.profile.ProfileScreen
 
 sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
@@ -34,15 +35,15 @@ sealed class Screen(val route: String) {
     data object Profile : Screen("profile")
     data object Water : Screen("water")
     data object Weight : Screen("weight")
+    data object Sleep : Screen("sleep")
+    data object Share : Screen("share")
+    data object Achievements : Screen("achievements")
     data object ActiveSession : Screen("active_session/{activityType}") {
         fun createRoute(activityType: String) = "active_session/$activityType"
     }
     data object RouteDetail : Screen("route_detail/{sessionId}") {
         fun createRoute(sessionId: Long) = "route_detail/$sessionId"
     }
-    data object Share : Screen("share")
-
-    data object Sleep : Screen("sleep")
 }
 
 @Composable
@@ -80,8 +81,11 @@ fun FitTrackNavHost(
 
         composable(Screen.Dashboard.route) {
             DashboardScreen(
+                onNavigateToRoutes = { navController.navigate(Screen.Routes.route) },
+                onNavigateToStats = { navController.navigate(Screen.Stats.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
                 onNavigateToWater = { navController.navigate(Screen.Water.route) },
+                onNavigateToWeight = { navController.navigate(Screen.Weight.route) },
                 onStartActivity = { type ->
                     navController.navigate(Screen.ActiveSession.createRoute(type))
                 }
@@ -101,9 +105,7 @@ fun FitTrackNavHost(
             RoutesScreen(
                 onBack = { navController.popBackStack() },
                 onSessionClick = { sessionId ->
-                    navController.navigate(
-                        Screen.RouteDetail.createRoute(sessionId)
-                    )
+                    navController.navigate(Screen.RouteDetail.createRoute(sessionId))
                 }
             )
         }
@@ -122,9 +124,7 @@ fun FitTrackNavHost(
         }
 
         composable(Screen.Profile.route) {
-            ProfileScreen(
-                onBack = { navController.popBackStack() }
-            )
+            ProfileScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Screen.Water.route) {
@@ -135,14 +135,17 @@ fun FitTrackNavHost(
             WeightScreen(onBack = { navController.popBackStack() })
         }
 
-        composable(Screen.Share.route) {
-            ShareCardScreen(onBack = { navController.popBackStack() })
-        }
-
         composable(Screen.Sleep.route) {
             SleepScreen(onBack = { navController.popBackStack() })
         }
 
+        composable(Screen.Share.route) {
+            ShareCardScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.Achievements.route) {
+            AchievementsScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
 

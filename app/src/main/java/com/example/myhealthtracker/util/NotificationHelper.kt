@@ -9,10 +9,12 @@ import androidx.core.app.NotificationCompat
 import com.example.myhealthtracker.MainActivity
 import javax.inject.Inject
 import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 
 @Singleton
 class NotificationHelper @Inject constructor(
-    private val context: Context
+    @ApplicationContext private val context: Context
 ) {
     companion object {
         const val HYDRATION_CHANNEL_ID = "hydration_reminders"
@@ -22,6 +24,10 @@ class NotificationHelper @Inject constructor(
         const val HYDRATION_NOTIFICATION_ID = 2001
         const val SEDENTARY_NOTIFICATION_ID = 2002
         const val STEP_GOAL_NOTIFICATION_ID = 2003
+
+        const val ACHIEVEMENT_CHANNEL_ID = "achievements"
+
+        const val ACHIEVEMENT_NOTIFICATION_ID = 2004
     }
 
     init {
@@ -61,6 +67,16 @@ class NotificationHelper @Inject constructor(
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Daily step goal progress reminders"
+            }
+        )
+
+        manager.createNotificationChannel(
+            NotificationChannel(
+                ACHIEVEMENT_CHANNEL_ID,
+                "Achievements",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifications when you unlock new achievements"
             }
         )
     }
@@ -159,5 +175,22 @@ class NotificationHelper @Inject constructor(
             .setAutoCancel(true)
             .build()
         manager.notify(STEP_GOAL_NOTIFICATION_ID, notification)
+    }
+
+    fun showAchievementUnlocked(title: String, description: String) {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        val notification = NotificationCompat.Builder(context, ACHIEVEMENT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_menu_compass)
+            .setContentTitle("🏆 Achievement Unlocked!")
+            .setContentText(title)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText("$title — $description")
+            )
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(getPendingIntent())
+            .setAutoCancel(true)
+            .build()
+        manager.notify(ACHIEVEMENT_NOTIFICATION_ID, notification)
     }
 }
