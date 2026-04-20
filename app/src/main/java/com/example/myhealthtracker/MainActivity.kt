@@ -41,6 +41,11 @@ import com.example.myhealthtracker.ui.theme.FitTrackTheme
 import com.example.myhealthtracker.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import com.example.myhealthtracker.service.StepCounterService
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableLongStateOf
+
 
 
 data class BottomNavItem(
@@ -66,13 +71,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        // Hide system navigation bar — swipe up from bottom to reveal
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.let { controller ->
-                controller.hide(
-                    android.view.WindowInsets.Type.navigationBars() or
-                            android.view.WindowInsets.Type.statusBars()
-                )
+                controller.hide(android.view.WindowInsets.Type.navigationBars())
                 controller.systemBarsBehavior =
                     android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
@@ -81,119 +82,16 @@ class MainActivity : ComponentActivity() {
             window.decorView.systemUiVisibility = (
                     android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                             or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            or android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
                     )
         }
         requestPermissionsAndStart()
 
         setContent {
             FitTrackTheme {
-                val navController = rememberNavController()
-                val onboardingComplete by viewModel.onboardingComplete
-                    .collectAsState(initial = false)
-
-                val startDestination = if (onboardingComplete)
-                    Screen.Dashboard.route
-                else
-                    Screen.Onboarding.route
-
-                // Screens that show bottom nav
-                val bottomNavScreens = setOf(
-                    Screen.Dashboard.route,
-                    Screen.Routes.route,
-                    Screen.Stats.route,
-                    Screen.Profile.route
+                FitTrackApp(
+                    viewModel = viewModel,
+                    onFinish = { finish() }
                 )
-
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
-                val showBottomNav = currentRoute in bottomNavScreens
-
-                val bottomNavItems = listOf(
-                    BottomNavItem(
-                        screen = Screen.Dashboard,
-                        label = "Home",
-                        selectedIcon = Icons.Filled.Home,
-                        unselectedIcon = Icons.Outlined.Home
-                    ),
-                    BottomNavItem(
-                        screen = Screen.Routes,
-                        label = "Routes",
-                        selectedIcon = Icons.Filled.Map,
-                        unselectedIcon = Icons.Outlined.Map
-                    ),
-                    BottomNavItem(
-                        screen = Screen.Stats,
-                        label = "Stats",
-                        selectedIcon = Icons.Filled.BarChart,
-                        unselectedIcon = Icons.Outlined.BarChart
-                    )
-                )
-
-                var showActivityPicker by remember { mutableStateOf(false) }
-
-                if (showActivityPicker) {
-                    ActivityPickerSheet(
-                        onDismiss = { showActivityPicker = false },
-                        onActivitySelected = { activityType ->
-                            showActivityPicker = false
-                            navController.navigate(
-                                Screen.ActiveSession.createRoute(activityType)
-                            )
-                        }
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(FitTrackColors.Background)
-                ) {
-                    // Main content
-                    FitTrackNavHost(
-                        navController = navController,
-                        startDestination = startDestination,
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    // Bottom Nav Bar
-                    AnimatedVisibility(
-                        visible = showBottomNav,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        enter = slideInVertically { it } + fadeIn(),
-                        exit = slideOutVertically { it } + fadeOut()
-                    ) {
-                        FitTrackBottomNav(
-                            items = bottomNavItems,
-                            currentRoute = currentRoute,
-                            onItemClick = { item ->
-                                navController.navigate(item.screen.route) {
-                                    popUpTo(
-                                        navController.graph.findStartDestination().id
-                                    ) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            onStartActivity = { showActivityPicker = true },
-                            onNavigateToWater = {
-                                navController.navigate(Screen.Water.route)
-                            },
-                            onNavigateToWeight = {
-                                navController.navigate(Screen.Weight.route)
-                            },
-                            onNavigateToSleep = {
-                                navController.navigate(Screen.Sleep.route)
-                            },
-                            onNavigateToShare = {
-                                navController.navigate(Screen.Share.route)
-                            },
-                            onNavigateToAchievements = {
-                                navController.navigate(Screen.Achievements.route)
-                            },
-                        )
-                    }
-                }
             }
         }
     }
@@ -248,13 +146,15 @@ fun FitTrackBottomNav(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(FitTrackColors.SurfaceCard)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         NavigationBar(
-            containerColor = FitTrackColors.SurfaceCard,
+            containerColor = FitTrackColors.SurfaceCard.copy(alpha = 0.95f),
             contentColor = FitTrackColors.TextSecondary,
             tonalElevation = 0.dp,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(28.dp))
         ) {
             // Item 1 — Home
             val homeItem = items[0]
@@ -426,6 +326,7 @@ fun FitTrackBottomNav(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -663,6 +564,136 @@ fun ActivityPickerSheet(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun FitTrackApp(
+    viewModel: MainViewModel,
+    onFinish: () -> Unit
+) {
+    val navController = rememberNavController()
+    val context = LocalContext.current
+    var lastBackPress by remember { mutableLongStateOf(0L) }
+
+    val onboardingComplete by viewModel.onboardingComplete
+        .collectAsState(initial = false)
+
+    val startDestination = if (onboardingComplete)
+        Screen.Dashboard.route
+    else
+        Screen.Onboarding.route
+
+    val bottomNavScreens = setOf(
+        Screen.Dashboard.route,
+        Screen.Routes.route,
+        Screen.Stats.route,
+        Screen.Profile.route
+    )
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val showBottomNav = currentRoute in bottomNavScreens
+
+    val bottomNavItems = listOf(
+        BottomNavItem(
+            screen = Screen.Dashboard,
+            label = "Home",
+            selectedIcon = Icons.Filled.Home,
+            unselectedIcon = Icons.Outlined.Home
+        ),
+        BottomNavItem(
+            screen = Screen.Routes,
+            label = "Routes",
+            selectedIcon = Icons.Filled.Map,
+            unselectedIcon = Icons.Outlined.Map
+        ),
+        BottomNavItem(
+            screen = Screen.Stats,
+            label = "Stats",
+            selectedIcon = Icons.Filled.BarChart,
+            unselectedIcon = Icons.Outlined.BarChart
+        )
+    )
+
+    var showActivityPicker by remember { mutableStateOf(false) }
+
+    // Back handler
+    BackHandler {
+        val now = System.currentTimeMillis()
+        when {
+            currentRoute == Screen.Dashboard.route -> {
+                if (now - lastBackPress < 2000) {
+                    onFinish()
+                } else {
+                    lastBackPress = now
+                }
+            }
+            else -> navController.popBackStack()
+        }
+    }
+
+    if (showActivityPicker) {
+        ActivityPickerSheet(
+            onDismiss = { showActivityPicker = false },
+            onActivitySelected = { activityType ->
+                showActivityPicker = false
+                navController.navigate(
+                    Screen.ActiveSession.createRoute(activityType)
+                )
+            }
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(FitTrackColors.Background)
+    ) {
+        FitTrackNavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        AnimatedVisibility(
+            visible = showBottomNav,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp),
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut()
+        ) {
+            FitTrackBottomNav(
+                items = bottomNavItems,
+                currentRoute = currentRoute,
+                onItemClick = { item ->
+                    navController.navigate(item.screen.route) {
+                        popUpTo(
+                            navController.graph.findStartDestination().id
+                        ) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                onStartActivity = { showActivityPicker = true },
+                onNavigateToWater = {
+                    navController.navigate(Screen.Water.route)
+                },
+                onNavigateToWeight = {
+                    navController.navigate(Screen.Weight.route)
+                },
+                onNavigateToSleep = {
+                    navController.navigate(Screen.Sleep.route)
+                },
+                onNavigateToShare = {
+                    navController.navigate(Screen.Share.route)
+                },
+                onNavigateToAchievements = {
+                    navController.navigate(Screen.Achievements.route)
+                }
+            )
         }
     }
 }

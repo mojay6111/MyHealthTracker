@@ -24,6 +24,7 @@ import com.example.myhealthtracker.ui.viewmodel.StatsViewModel
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun StatsScreen(
@@ -74,6 +75,18 @@ fun StatsScreen(
                 totalDistance = viewModel.formatDistance(uiState.totalDistanceEver),
                 totalCalories = viewModel.formatCalories(uiState.totalCaloriesEver),
                 currentStreak = uiState.currentStreak
+            )
+
+            // ── Personal Records ──
+            PersonalRecordsCard(
+                bestDaySteps = uiState.bestDaySteps,
+                totalDistance = viewModel.formatDistance(uiState.totalDistanceEver),
+                longestActivity = viewModel.formatDistance(uiState.longestActivityDistance),
+                fastestSpeed = if (uiState.fastestSpeedKmh > 0)
+                    "${"%.1f".format(uiState.fastestSpeedKmh)} km/h"
+                else "--",
+                longestStreak = uiState.longestStreak,
+                totalCalories = viewModel.formatCalories(uiState.totalCaloriesEver)
             )
 
             // ── Tabs ──
@@ -829,6 +842,144 @@ fun EmptyState(
                 style = MaterialTheme.typography.bodyMedium,
                 color = FitTrackColors.TextSecondary,
                 textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun PersonalRecordsCard(
+    bestDaySteps: Int,
+    totalDistance: String,
+    longestActivity: String,
+    fastestSpeed: String,
+    longestStreak: Int,
+    totalCalories: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = FitTrackColors.SurfaceCard
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(text = "🏆", fontSize = 20.sp)
+                Text(
+                    text = "Personal Records",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = FitTrackColors.TextPrimary
+                )
+            }
+
+            HorizontalDivider(color = FitTrackColors.SurfaceBorder)
+
+            // Grid of records
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    PersonalRecordItem(
+                        modifier = Modifier.weight(1f),
+                        emoji = "👟",
+                        label = "Best Day Steps",
+                        value = "%,d".format(bestDaySteps),
+                        color = FitTrackColors.TealPrimary
+                    )
+                    PersonalRecordItem(
+                        modifier = Modifier.weight(1f),
+                        emoji = "📍",
+                        label = "Total Distance",
+                        value = totalDistance,
+                        color = FitTrackColors.Amber
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    PersonalRecordItem(
+                        modifier = Modifier.weight(1f),
+                        emoji = "🏃",
+                        label = "Longest Activity",
+                        value = longestActivity,
+                        color = FitTrackColors.Coral
+                    )
+                    PersonalRecordItem(
+                        modifier = Modifier.weight(1f),
+                        emoji = "⚡",
+                        label = "Fastest Speed",
+                        value = fastestSpeed,
+                        color = FitTrackColors.Purple
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    PersonalRecordItem(
+                        modifier = Modifier.weight(1f),
+                        emoji = "🔥",
+                        label = "Longest Streak",
+                        value = "$longestStreak days",
+                        color = FitTrackColors.GreenSuccess
+                    )
+                    PersonalRecordItem(
+                        modifier = Modifier.weight(1f),
+                        emoji = "🔥",
+                        label = "Total Calories",
+                        value = totalCalories,
+                        color = FitTrackColors.Coral
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PersonalRecordItem(
+    modifier: Modifier = Modifier,
+    emoji: String,
+    label: String,
+    value: String,
+    color: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = FitTrackColors.SurfaceElevated
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(text = emoji, fontSize = 20.sp)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = FitTrackColors.TextSecondary
             )
         }
     }

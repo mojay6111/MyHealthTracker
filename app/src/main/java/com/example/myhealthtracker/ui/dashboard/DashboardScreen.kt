@@ -32,6 +32,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 
 
 @Composable
@@ -43,61 +48,82 @@ fun DashboardScreen(
     onNavigateToWeight: () -> Unit,
     onStartActivity: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
-){
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
     val scrollState = rememberScrollState()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(FitTrackColors.Background)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp)
-            .padding(top = 48.dp, bottom = 200.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // ── Header ──
-        DashboardHeader(
-            greeting = uiState.greeting,
-            userName = uiState.userName,
-            onProfileClick = onNavigateToProfile,
-            scrollOffset = scrollState.value,
-            currentStreak = uiState.currentStreak
-        )
-
-        // ── Step Ring Card ──
-        StepRingCard(
-            steps = uiState.steps,
-            stepGoal = uiState.stepGoal,
-            progress = uiState.progressFraction,
-            calories = uiState.calories,
-            distanceMetres = uiState.distanceMetres,
-            formattedSteps = viewModel.formatSteps(uiState.steps),
-            formattedCalories = viewModel.formatCalories(uiState.calories),
-            formattedDistance = viewModel.formatDistance(uiState.distanceMetres)
-        )
-
-        // ── Quick Stats Row ──
-        QuickStatsRow(
-            calories = uiState.calories,
-            distanceMetres = uiState.distanceMetres,
-            waterMl = uiState.waterMl,
-            waterGoalMl = uiState.waterGoalMl,
-            formattedCalories = viewModel.formatCalories(uiState.calories),
-            formattedDistance = viewModel.formatDistance(uiState.distanceMetres),
-            onWaterClick = onNavigateToWater
-        )
-
-        // ── Start Activity Row ──
-        StartActivityRow(onStartActivity = onStartActivity)
-
-        // ── Weekly Steps Chart ──
-        if (uiState.weeklyRecords.isNotEmpty()) {
-            WeeklyStepsCard(
-                records = uiState.weeklyRecords,
+        // ── Scrollable content ──
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 20.dp)
+                .padding(top = 120.dp, bottom = 200.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // ── Step Ring Card ──
+            StepRingCard(
+                steps = uiState.steps,
                 stepGoal = uiState.stepGoal,
-                getDayLabel = viewModel::getDayLabel
+                progress = uiState.progressFraction,
+                calories = uiState.calories,
+                distanceMetres = uiState.distanceMetres,
+                formattedSteps = viewModel.formatSteps(uiState.steps),
+                formattedCalories = viewModel.formatCalories(uiState.calories),
+                formattedDistance = viewModel.formatDistance(uiState.distanceMetres)
+            )
+
+            // ── Quick Stats Row ──
+            QuickStatsRow(
+                calories = uiState.calories,
+                distanceMetres = uiState.distanceMetres,
+                waterMl = uiState.waterMl,
+                waterGoalMl = uiState.waterGoalMl,
+                formattedCalories = viewModel.formatCalories(uiState.calories),
+                formattedDistance = viewModel.formatDistance(uiState.distanceMetres),
+                onWaterClick = onNavigateToWater
+            )
+
+            // ── Start Activity Row ──
+            StartActivityRow(onStartActivity = onStartActivity)
+
+            // ── Weekly Steps Chart ──
+            if (uiState.weeklyRecords.isNotEmpty()) {
+                WeeklyStepsCard(
+                    records = uiState.weeklyRecords,
+                    stepGoal = uiState.stepGoal,
+                    getDayLabel = viewModel::getDayLabel
+                )
+            }
+        }
+
+        // ── Sticky Header — sits on top of scrollable content ──
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            FitTrackColors.Background,
+                            FitTrackColors.Background,
+                            FitTrackColors.Background.copy(alpha = 0.95f),
+                            Color.Transparent
+                        ),
+                        endY = 300f
+                    )
+                )
+        ) {
+            DashboardHeader(
+                greeting = uiState.greeting,
+                userName = uiState.userName,
+                onProfileClick = onNavigateToProfile,
+                scrollOffset = scrollState.value,
+                currentStreak = uiState.currentStreak
             )
         }
     }
@@ -111,28 +137,29 @@ fun DashboardHeader(
     scrollOffset: Int = 0,
     currentStreak: Int = 0
 ) {
-    // Collapse header as user scrolls — max collapse at 300px scroll
-    val collapseProgress = (scrollOffset / 300f).coerceIn(0f, 1f)
-
-    // Greeting fades out as we scroll
-    val greetingAlpha = (1f - collapseProgress * 2f).coerceIn(0f, 1f)
-
-    // Name font size shrinks from 24sp to 16sp
-    val nameFontSize = (24f - (collapseProgress * 8f)).coerceIn(16f, 24f)
-
-    // Header height shrinks
-    val topPadding = (48f - (collapseProgress * 24f)).coerceIn(24f, 48f)
+    val collapseProgress = (scrollOffset / 400f).coerceIn(0f, 1f)
+    val greetingAlpha = (1f - collapseProgress * 3f).coerceIn(0f, 1f)
+    val nameFontSize by animateFloatAsState(
+        targetValue = (26f - (collapseProgress * 10f)).coerceIn(16f, 26f),
+        animationSpec = tween(200),
+        label = "name_size"
+    )
+    val headerPadding by animateDpAsState(
+        targetValue = if (collapseProgress > 0.5f) 12.dp else 48.dp,
+        animationSpec = tween(200),
+        label = "header_padding"
+    )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = topPadding.dp),
+            .padding(horizontal = 20.dp)
+            .padding(top = headerPadding, bottom = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            // Greeting fades out on scroll
-            if (greetingAlpha > 0f) {
+            if (greetingAlpha > 0.01f) {
                 Text(
                     text = greeting,
                     style = MaterialTheme.typography.bodyMedium,
@@ -140,17 +167,17 @@ fun DashboardHeader(
                     modifier = Modifier.graphicsLayer { alpha = greetingAlpha }
                 )
             }
-            // Name shrinks but stays visible
             Text(
                 text = if (userName.isNotEmpty()) userName else "Athlete",
                 fontSize = nameFontSize.sp,
                 fontWeight = FontWeight.Bold,
                 color = FitTrackColors.TextPrimary
             )
-            if (currentStreak > 0) {
+            if (currentStreak > 0 && greetingAlpha > 0.01f) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.graphicsLayer { alpha = greetingAlpha }
                 ) {
                     Text(text = "🔥", fontSize = 12.sp)
                     Text(

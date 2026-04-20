@@ -30,7 +30,10 @@ data class StatsUiState(
     val weightLogs: List<WeightLogEntity> = emptyList(),
     val selectedTab: Int = 0,
     val currentStreak: Int = 0,
-    val stepGoal: Int = 10_000
+    val longestStreak: Int = 0,
+    val stepGoal: Int = 10_000,
+    val longestActivityDistance: Double = 0.0,
+    val fastestSpeedKmh: Double = 0.0
 )
 
 @HiltViewModel
@@ -53,26 +56,56 @@ class StatsViewModel @Inject constructor(
 
     private fun observeStats() {
         viewModelScope.launch {
-            // Weekly steps
-            stepDao.getRecentStepRecords(7).collect { records ->
-                val total = records.sumOf { it.steps }
-                val avg = if (records.isNotEmpty()) total / records.size else 0
+            stepDao.getRecentStepRecords(365).collect { records ->
+                val weeklyRecords = records.take(7)
+                val total = weeklyRecords.sumOf { it.steps }
+                val avg = if (weeklyRecords.isNotEmpty()) total / weeklyRecords.size else 0
                 val best = records.maxByOrNull { it.steps }
                 val allTime = records.sumOf { it.steps }
                 val allDist = records.sumOf { it.distanceMetres }
                 val allCals = records.sumOf { it.caloriesBurned }
                 val streak = calculateStreak(records)
 
+                // Calculate longest streak ever
+                var longestStreak = 0
+                var currentStreakCount = 0
+                val goal = _uiState.value.stepGoal
+                val sorted = records.sortedByDescending { it.date }
+                for (record in sorted) {
+                    if (record.steps >= goal) {
+                        currentStreakCount++
+                        if (currentStreakCount > longestStreak)
+                            longestStreak = currentStreakCount
+                    } else {
+                        currentStreakCount = 0
+                    }
+                }
+
                 _uiState.update {
                     it.copy(
-                        weeklySteps = records.reversed(),
+                        weeklySteps = weeklyRecords.reversed(),
                         totalStepsEver = allTime,
                         totalDistanceEver = allDist,
                         totalCaloriesEver = allCals,
                         avgDailySteps = avg,
                         bestDaySteps = best?.steps ?: 0,
                         bestDayDate = best?.date ?: "",
-                        currentStreak = streak
+                        currentStreak = streak,
+                        longestStreak = longestStreak
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            activitySessionDao.getAllSessions().collect { sessions ->
+                val longestActivity = sessions.maxOfOrNull { it.distanceMetres } ?: 0.0
+                val fastestSpeed = sessions.maxOfOrNull { it.maxSpeedKmh } ?: 0.0
+                _uiState.update {
+                    it.copy(
+                        recentSessions = sessions.take(10),
+                        longestActivityDistance = longestActivity,
+                        fastestSpeedKmh = fastestSpeed
                     )
                 }
             }
