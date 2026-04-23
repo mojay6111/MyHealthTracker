@@ -37,6 +37,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.example.myhealthtracker.data.remote.WeatherUiModel
+import com.example.myhealthtracker.ui.viewmodel.WeatherViewModel
+import androidx.compose.ui.unit.sp
 
 
 @Composable
@@ -47,10 +50,12 @@ fun DashboardScreen(
     onNavigateToWater: () -> Unit,
     onNavigateToWeight: () -> Unit,
     onStartActivity: (String) -> Unit,
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
+    weatherViewModel: WeatherViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+    val weatherState by weatherViewModel.weather.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -92,7 +97,13 @@ fun DashboardScreen(
             // ── Start Activity Row ──
             StartActivityRow(onStartActivity = onStartActivity)
 
-            // ── Weekly Steps Chart ──
+            // ── Weather Card ──
+            WeatherCard(
+                weather = weatherState,
+                onRefresh = weatherViewModel::fetchWeather
+            )
+
+// ── Weekly Steps Chart ──
             if (uiState.weeklyRecords.isNotEmpty()) {
                 WeeklyStepsCard(
                     records = uiState.weeklyRecords,
@@ -653,6 +664,190 @@ fun WeeklyBar(
             style = MaterialTheme.typography.labelSmall,
             color = FitTrackColors.TextSecondary
         )
+    }
+}
+
+@Composable
+fun WeatherCard(
+    weather: WeatherUiModel,
+    onRefresh: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = FitTrackColors.SurfaceCard
+        )
+    ) {
+        when {
+            weather.isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = FitTrackColors.TealPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = "Loading weather...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = FitTrackColors.TextSecondary
+                        )
+                    }
+                }
+            }
+
+            weather.error != null -> {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "🌤️ Weather unavailable",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = FitTrackColors.TextSecondary
+                    )
+                    IconButton(onClick = onRefresh) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh",
+                            tint = FitTrackColors.TealPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+
+            else -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Top row — city + refresh
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = FitTrackColors.TealPrimary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = weather.cityName,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = FitTrackColors.TextSecondary
+                            )
+                        }
+                        IconButton(
+                            onClick = onRefresh,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = FitTrackColors.TextDisabled,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    // Main weather row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = weather.emoji,
+                                fontSize = 48.sp
+                            )
+                            Column {
+                                Text(
+                                    text = weather.temperature,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = FitTrackColors.TextPrimary
+                                )
+                                Text(
+                                    text = weather.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = FitTrackColors.TextSecondary
+                                )
+                                Text(
+                                    text = weather.feelsLike,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = FitTrackColors.TextDisabled
+                                )
+                            }
+                        }
+
+                        // Right side stats
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = weather.humidity,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = FitTrackColors.TextSecondary
+                            )
+                            Text(
+                                text = weather.windSpeed,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = FitTrackColors.TextSecondary
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = FitTrackColors.SurfaceBorder)
+
+                    // Activity suggestion
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = FitTrackColors.TealContainer
+                        ) {
+                            Text(
+                                text = weather.activitySuggestion,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = FitTrackColors.TealPrimary,
+                                modifier = Modifier.padding(
+                                    horizontal = 12.dp,
+                                    vertical = 6.dp
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
